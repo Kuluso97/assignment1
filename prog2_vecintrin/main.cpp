@@ -208,6 +208,7 @@ void absVector(float* values, float* output, int N) {
 
     // Write results back to memory
     _cmu418_vstore_float(output+i, result, maskAll);
+
   }
 }
 
@@ -238,8 +239,60 @@ void clampedExpSerial(float* values, int* exponents, float* output, int N) {
 
 void clampedExpVector(float* values, int* exponents, float* output, int N) {
   // TODO: Implement your vectorized version of clampedExpSerial here
+  __cmu418_vec_float x;
+  __cmu418_vec_int y;
+  __cmu418_vec_float result;
 
+  __cmu418_mask maskAll, maskIsZero, maskIsNotZero, maskCount, maskTooBig;
+
+  __cmu418_vec_int zeroInt = _cmu418_vset_int(0);
+  __cmu418_vec_float zero = _cmu418_vset_float(0.f);
+
+  __cmu418_vec_int oneInt = _cmu418_vset_int(1);
+  __cmu418_vec_float one = _cmu418_vset_float(1.f);
+  __cmu418_vec_float threshold = _cmu418_vset_float(9.999999f); 
+  
+  
   for (int i=0; i<N; i+=VECTOR_WIDTH) {
+    if (i + VECTOR_WIDTH > N) {
+      maskAll = _cmu418_init_ones(N-i);
+    } else {
+      maskAll = _cmu418_init_ones();
+    }
+
+    _cmu418_vload_float(x, values+i, maskAll);
+    _cmu418_vload_int(y, exponents+i, maskAll);
+
+    _cmu418_veq_int(maskIsZero, y, zeroInt, maskAll);
+    _cmu418_vstore_float(output+i, one, maskIsZero);
+
+    maskIsNotZero = _cmu418_mask_not(maskIsZero);
+    maskIsNotZero = _cmu418_mask_and(maskIsNotZero, maskAll);
+
+    __cmu418_vec_float newResult;
+    __cmu418_vec_int newY;
+
+    _cmu418_vsub_float(result, x, zero, maskIsNotZero);
+    _cmu418_vsub_int(newY, y, oneInt, maskIsNotZero);
+    _cmu418_vmove_int(y, newY, maskIsNotZero);
+
+    _cmu418_vgt_int(maskCount, y, zeroInt, maskIsNotZero);
+
+    while (_cmu418_cntbits(maskCount) > 0) {
+      _cmu418_vmove_float(newResult, result, maskIsNotZero);
+      _cmu418_vmult_float(newResult, result, x, maskCount);
+
+      _cmu418_vmove_int(newY, y, maskIsNotZero);
+      _cmu418_vsub_int(newY, y, oneInt, maskIsNotZero);
+      _cmu418_vgt_int(maskCount, newY, zeroInt, maskIsNotZero);
+      _cmu418_vmove_float(result, newResult, maskIsNotZero);
+      _cmu418_vmove_int(y, newY, maskIsNotZero);
+    }
+
+    _cmu418_vgt_float(maskTooBig, result, threshold, maskIsNotZero);
+    _cmu418_vmove_float(result, threshold, maskTooBig);
+
+    _cmu418_vstore_float(output+i, result, maskIsNotZero);
 
   }
 

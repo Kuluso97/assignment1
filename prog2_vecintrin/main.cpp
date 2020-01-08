@@ -273,20 +273,13 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
     __cmu418_vec_int newY;
 
     _cmu418_vsub_float(result, x, zero, maskIsNotZero);
-    _cmu418_vsub_int(newY, y, oneInt, maskIsNotZero);
-    _cmu418_vmove_int(y, newY, maskIsNotZero);
-
+    _cmu418_vsub_int(y, y, oneInt, maskIsNotZero);
     _cmu418_vgt_int(maskCount, y, zeroInt, maskIsNotZero);
 
     while (_cmu418_cntbits(maskCount) > 0) {
-      _cmu418_vmove_float(newResult, result, maskIsNotZero);
-      _cmu418_vmult_float(newResult, result, x, maskCount);
-
-      _cmu418_vmove_int(newY, y, maskIsNotZero);
-      _cmu418_vsub_int(newY, y, oneInt, maskIsNotZero);
-      _cmu418_vgt_int(maskCount, newY, zeroInt, maskIsNotZero);
-      _cmu418_vmove_float(result, newResult, maskIsNotZero);
-      _cmu418_vmove_int(y, newY, maskIsNotZero);
+      _cmu418_vmult_float(result, result, x, maskCount);
+      _cmu418_vsub_int(y, y, oneInt, maskIsNotZero);
+      _cmu418_vgt_int(maskCount, y, zeroInt, maskIsNotZero);
     }
 
     _cmu418_vgt_float(maskTooBig, result, threshold, maskIsNotZero);

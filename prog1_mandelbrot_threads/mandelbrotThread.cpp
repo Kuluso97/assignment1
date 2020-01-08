@@ -32,8 +32,15 @@ void* workerThreadStart(void* threadArgs) {
     WorkerArgs* args = static_cast<WorkerArgs*>(threadArgs);
 
     // TODO: Implement worker thread here.
+    int startLine, numRows;
+    startLine = args->height / args->numThreads * args->threadId;
+    numRows = args->height / args->numThreads;
 
-    printf("Hello world from thread %d\n", args->threadId);
+    double startTime = CycleTimer::currentSeconds();
+    mandelbrotSerial(args->x0, args->y0, args->x1, args->y1, args->width,
+                        args->height, startLine, numRows, args->maxIterations, args->output);
+    double endTime = CycleTimer::currentSeconds();
+    printf("[Thread %d] mandelbrotSerial cost %f\n", args->threadId, endTime-startTime);
 
     return NULL;
 }
@@ -59,10 +66,22 @@ void mandelbrotThread(
 
     pthread_t workers[MAX_THREADS];
     WorkerArgs args[MAX_THREADS];
-
+    int offset;
+    offset = width * (height / numThreads);
+    printf("Number of Threads %d\n", numThreads);
+    
     for (int i=0; i<numThreads; i++) {
         // TODO: Set thread arguments here.
         args[i].threadId = i;
+        args[i].x0 = x0;
+        args[i].y0 = y0;
+        args[i].x1 = x1;
+        args[i].y1 = y1; 
+        args[i].width = width;
+        args[i].height = height;
+        args[i].maxIterations = maxIterations;
+        args[i].output = output;   
+        args[i].numThreads = numThreads;
     }
 
     // Fire up the worker threads.  Note that numThreads-1 pthreads
